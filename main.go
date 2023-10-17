@@ -188,6 +188,24 @@ func setActionOutput(name string, content string) {
 	os.Stdout.WriteString("::set-output name=" + name + "::" + content + "\n")
 }
 
+func local(input string, output string) error {
+	vData, err := os.ReadFile(input)
+	if err != nil {
+		return err
+	}
+	domainMap, err := parse(vData)
+	if err != nil {
+		return err
+	}
+	outputFile, err := os.Create(output)
+	if err != nil {
+		return err
+	}
+	outputPath, _ := filepath.Abs(output)
+	os.Stderr.WriteString("write " + outputPath + "\n")
+	return geosite.Write(outputFile, domainMap)
+}
+
 func release(source string, destination string, output string) error {
 	sourceRelease, err := fetch(source)
 	if err != nil {
@@ -212,7 +230,12 @@ func release(source string, destination string, output string) error {
 }
 
 func main() {
-	err := release("v2fly/domain-list-community", "sagernet/sing-geosite", "geosite.db")
+	var err error
+	if len(os.Args) >= 2 {
+		err = local(os.Args[1], os.Args[2])
+	} else {
+		err = release("v2fly/domain-list-community", "sagernet/sing-geosite", "geosite.db")
+	}
 	if err != nil {
 		logrus.Fatal(err)
 	}
